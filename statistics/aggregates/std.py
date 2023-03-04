@@ -29,8 +29,19 @@ References:
 import numpy
 from data import speeds
 
+def stddev(array):
+    # implements the classic standard deviation method
+
+    N = array.size
+    mean = array.mean()
+    squares = (array - mean)**2
+    squaresSum = squares.sum()
+
+    return numpy.sqrt( squaresSum / (N - 1) )
+
 # prints the standard deviation of the speed array on the console
 print(f'standard-deviation: {numpy.std(speeds)} km / h')
+print(f'standard-deviation: {stddev(speeds)} km / h')
 
 '''
 Notes borrowed from the documentation of numpy.std() regarding its implementation:
