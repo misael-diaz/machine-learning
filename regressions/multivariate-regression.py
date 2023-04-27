@@ -117,30 +117,48 @@ rmses = []  # inits the Root Mean Squared Errors RMSEs list
 scores = [] # inits the R-squared scores
 for degree in degrees:
 
-  model = make_pipeline(StandardScaler(),
-                        PolynomialFeatures(degree, interaction_only = False),
-                        LinearRegression())
+  sc = StandardScaler(copy = True, with_mean = True, with_std = True)
+  std_X_train = sc.fit_transform(X_train)
+  std_X_test = sc.transform(X_test)
 
-  model.fit(X_train, y_train)
-  y_pred = model.predict(X_test)
-  score = model.score(X_test, y_test)
+  pf = PolynomialFeatures(degree = degree, interaction_only = False, include_bias = True)
+  pol_X_train = pf.fit_transform(std_X_train)
+  pol_X_test = pf.transform(std_X_test)
+
+  # NOTE: disables normalization owing to the standarization, see LinearRegression() info
+  model = LinearRegression (fit_intercept = True, normalize = False,
+                            copy_X = True, n_jobs = None)
+
+  model.fit(pol_X_train, y_train)
+  y_pred = model.predict(pol_X_test)
+  score_train = model.score(pol_X_train, y_train)
+  score_test = model.score(pol_X_test, y_test)
   rmse = sqrt( sum( (y_pred - y_test)**2 ) )
 
   rmses.append(rmse)
-  scores.append(score)
+  scores.append([score_train, score_test])
 
 rmses = array(rmses)
-scores = array(scores)
+scores_train, scores_test = array(scores).transpose()
 
 plt.close('all')
 plt.ion()
 fig, ax = plt.subplots()
-ax.plot(degrees, scores)
+ax.plot(degrees, scores_train, color = 'black', label = 'train')
+ax.plot(degrees, scores_test, color = 'red', label = 'test')
 ax.set_title('R-squared scores')
+ax.set_xlim([min_degree, max_degree])
+ax.set_ylim([0, 1.05])
+ax.set_xlabel('degree')
+ax.set_ylabel('score')
 
 fig, ax = plt.subplots()
 ax.plot(degrees, rmses)
-ax.set_title('RMSE')
+ax.set_xlim([min_degree, max_degree])
+ax.set_ylim([0, rmses.max()])
+ax.set_title('Root Mean Squared Errors RMSEs')
+ax.set_xlabel('degree')
+ax.set_ylabel('RMSE')
 
 """
 COMMENTS:
