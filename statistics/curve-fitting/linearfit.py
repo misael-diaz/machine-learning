@@ -26,16 +26,17 @@ References:
 """
 
 
-from numpy import sqrt
-from numpy import array
-from numpy import linspace
+from matplotlib import pyplot as plt
+from numpy.random import normal
 from numpy.linalg import det
-import matplotlib as mpl
-import matplotlib.pyplot as plt
+from numpy import linspace
+from numpy import array
+from numpy import sqrt
+from numpy import sum
 
 
 def LinearFit(xi, yi):
-    """ Obtains the linear fit of the dataset xi, yi via Least Squares """
+    """ Obtains the linear fit parameters of the dataset xi, yi via Least Squares """
 
     # solves the system of linear equations by Crammer's rule
     d = det([
@@ -76,14 +77,14 @@ def std(x):
     if (x.size == 1):
         raise RuntimeError('std(): single element array')
 
-    return sqrt( ( ( (x.mean() - x)**2 ).sum() ) / (x.size - 1) )
+    return sqrt( ( sum( (x.mean() - x)**2 ) ) / (x.size - 1) )
 
 
 
 
 """ Dataset """
-xi = linspace(1, 6, 6)
-yi = array([13.1, 26.0, 39.5, 52.7, 64.9, 78.6])
+xi = linspace(-8, 8, 256)
+yi = normal(loc = xi, scale = 0.25)
 
 # applies the least squares method to obtain the ``best fit'', y = f(x)
 slope, intercept, f = LinearFit(xi, yi)
@@ -96,9 +97,9 @@ plt.close('all')
 plt.ion()
 fig, ax = plt.subplots()
 # plots the dataset
-ax.plot(xi, yi, marker='*', markersize=12, color='red', linestyle='')
+ax.scatter(xi, yi)
 # plots the ``best fit'' y = f(x)
-ax.plot(x, f(x), color='black', linestyle='--')
+ax.plot(x, f(x), color='red', linestyle='--')
 ax.set_xlabel('x')
 ax.set_ylabel('y')
 ax.set_title('Least Squares')
