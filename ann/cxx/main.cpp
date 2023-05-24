@@ -26,12 +26,14 @@ References:
 #include <iomanip>
 #include <fstream>
 #include <vector>
+#include <random>
 #include <limits>
 #include <tuple>
 #include <cmath>
 
 #define NUM_FEATURES 4
-#define NUM_ITERATIONS 0x00001000
+#define NUM_ITERATIONS 0x00010000
+#define TOLERANCE 3.814697265625e-06
 #define ALPHA 0.0009765625
 
 
@@ -40,6 +42,7 @@ std::vector<double> transpose(std::vector<double>);
 std::vector<double> normalize(std::vector<double>);
 std::vector<double> get_features(std::vector<double>);
 std::vector<double> get_target(std::vector<double>);
+std::vector<double> init();
 
 std::tuple<
   std::vector<double>,
@@ -65,7 +68,7 @@ int main ()
 
   const std::vector<double>::size_type num_features = NUM_FEATURES;
   const std::vector<double>::size_type measurements = (X.size() / num_features);
-  std::vector<double> weights(num_features, pow(2, -4));
+  std::vector<double> weights = init();
   std::vector<double> bias(measurements, 0);
 
   std::vector<double> costs;
@@ -74,14 +77,14 @@ int main ()
   std::vector<double> y_pred = prediction(weights, bias, X);
   std::vector<double> errors = error(y, y_pred);
 
+  savetxt(y, y_pred);
+
+  /*
   for (auto error : errors)
   {
     std::cout << std::scientific << std::setprecision(12) << error << std::endl;
   }
 
-  savetxt(y, y_pred);
-
-  /*
   for (auto cost : costs)
   {
     std::cout << std::scientific << std::setprecision(12) << cost << std::endl;
@@ -236,6 +239,24 @@ std::vector<double> get_target (std::vector<double> dataset)
   }
 
   return y;
+}
+
+
+std::vector<double> init ()
+{
+  const std::vector<double>::size_type num_features = NUM_FEATURES;
+
+  std::random_device randev;
+  std::default_random_engine engine( randev() );
+  std::uniform_real_distribution<double> r(0, 1);
+
+  std::vector<double> weights(num_features);
+  for (std::vector<double>::size_type i = 0; i != num_features; ++i)
+  {
+    weights[i] = pow(2, -4) * r(engine);
+  }
+
+  return weights;
 }
 
 
@@ -406,50 +427,16 @@ std::vector<double> update (std::vector<double> vec, std::vector<double> grad)
 }
 
 
-// std::tuple optimize (std::vector<double> weights,
-//	 	        std::vector<double> bias,
-//		        std::vector<double> features,
-//		        std::vector<double> target)
-//
-// Synopsis:
-// Attempts to optimize the hyper parameters of the Artificial Neural Network.
-//
-// Parameters:
-// weights	vector of size NUM_FEATURES
-// bias		vector of size MEASUREMENTS
-// features	vector of size MEASUREMENTS * NUM_FEATURES
-// target	vector of size MEASUREMENTS
-//
-// Returns:
-// tuple	contains the (presumed) optimal weigth and bias and the cost
-
-
-std::tuple<
-  std::vector<double>,
-  std::vector<double>,
-  std::vector<double>
-> optimize (std::vector<double> weights,  std::vector<double> bias,
-	    std::vector<double> features, std::vector<double> target)
+// computes the vector modulus
+double modulus (std::vector<double> vec)
 {
-  std::vector<double>& w = weights;
-  std::vector<double>& b = bias;
-  const std::vector<double>& X = features;
-  const std::vector<double>& y = target;
-
-  std::vector<double> costs;
-  for (int i = 0; i != NUM_ITERATIONS; ++i)
+  double mod = 0;
+  for (std::vector<double>::size_type i = 0; i != vec.size(); ++i)
   {
-    double cost = forward_propagation(w, b, X, y);
-    costs.push_back(cost);
-
-    std::vector<double> dw, db;
-    std::tie(dw, db) = backward_propagation(w, b, X, y);
-
-    w = update(w, dw);
-    b = update(b, db);
+    mod += (vec[i] * vec[i]);
   }
 
-  return std::make_tuple(weights, bias, costs);
+  return sqrt(mod);
 }
 
 
@@ -477,6 +464,65 @@ std::vector<double> error (std::vector<double> y, std::vector<double> y_pred)
     errors[i] = (y[i] - y_pred[i]);
   }
   return errors;
+}
+
+
+// std::tuple optimize (std::vector<double> weights,
+//	 	        std::vector<double> bias,
+//		        std::vector<double> features,
+//		        std::vector<double> target)
+//
+// Synopsis:
+// Attempts to optimize the hyper parameters of the Artificial Neural Network.
+//
+// Parameters:
+// weights	vector of size NUM_FEATURES
+// bias		vector of size MEASUREMENTS
+// features	vector of size MEASUREMENTS * NUM_FEATURES
+// target	vector of size MEASUREMENTS
+//
+// Returns:
+// tuple	contains the (presumed) optimal weigth and bias and the cost
+
+
+std::tuple<
+  std::vector<double>,
+  std::vector<double>,
+  std::vector<double>
+> optimize (std::vector<double> weights,  std::vector<double> bias,
+	    std::vector<double> features, std::vector<double> target)
+{
+  const double tol = TOLERANCE;
+
+  std::vector<double>& w = weights;
+  std::vector<double>& b = bias;
+  const std::vector<double>& X = features;
+  const std::vector<double>& y = target;
+
+  std::vector<double> costs;
+  for (int i = 0; i != NUM_ITERATIONS; ++i)
+  {
+    double cost = forward_propagation(w, b, X, y);
+    costs.push_back(cost);
+
+    std::vector<double> dw, db;
+    std::tie(dw, db) = backward_propagation(w, b, X, y);
+
+    std::vector<double> y_pred = prediction(w, b, X);
+    std::vector<double> errors = error(y, y_pred);
+    double mod = modulus(errors);
+
+    if (mod < tol)
+    {
+      std::cout << "ANN has been optimized successfully" << std::endl;
+      break;
+    }
+
+    w = update(w, dw);
+    b = update(b, db);
+  }
+
+  return std::make_tuple(weights, bias, costs);
 }
 
 
@@ -522,6 +568,8 @@ void savetxt (std::vector<double> y, std::vector<double> y_pred)
 
 // TODO:
 //
-// [ ] consider adding a convergence criterion for optimize instead of just hoping that
-//     the model has learned enough from the dataset upon reaching the MAX_ITERATIONS
 // [ ] consider passing vectors by reference to reduce the copy overhead
+// [ ] consider splitting into train and test sets to assess the ability of the ANN to
+//     predict future values
+// [x] consider adding a convergence criterion for optimize instead of just hoping that
+//     the model has learned enough from the dataset upon reaching the MAX_ITERATIONS
