@@ -568,6 +568,8 @@ void savetxt (std::vector<double> y, std::vector<double> y_pred)
 
 // TODO:
 //
-// [ ] consider adding a convergence criterion for optimize instead of just hoping that
-//     the model has learned enough from the dataset upon reaching the MAX_ITERATIONS
 // [ ] consider passing vectors by reference to reduce the copy overhead
+// [ ] consider splitting into train and test sets to assess the ability of the ANN to
+//     predict future values
+// [x] consider adding a convergence criterion for optimize instead of just hoping that
+//     the model has learned enough from the dataset upon reaching the MAX_ITERATIONS
