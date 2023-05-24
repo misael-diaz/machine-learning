@@ -32,7 +32,7 @@ References:
 #include <cmath>
 
 #define NUM_FEATURES 4
-#define NUM_ITERATIONS 0x00001000
+#define NUM_ITERATIONS 0x00010000
 #define ALPHA 0.0009765625
 
 
