@@ -1,0 +1,38 @@
+# Algorithms and Complexity				  January 16, 2023
+# IST 4310
+# Prof M Diaz-Maldonado
+#
+# Synopsis:
+# Defines the include file for building the project source codes with GNU make.
+#
+# Copyright (c) 2023 Misael Diaz-Maldonado
+# This file is released under the GNU General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+
+## compiler
+
+CXX = g++
+
+# debugging options
+CXXOPT = -g -Wall -Og
+# enables optimizations
+CXXOPT = -O2
+
+
+## source files
+
+# main
+MAIN_CXX = main.cpp
+
+
+## objects
+MAIN_OBJ = main.o
+
+OBJECTS = $(MAIN_OBJ)
+
+
+## executables
+MAIN_EXE = artificial-neural-network
+TESTS = $(MAIN_EXE)
