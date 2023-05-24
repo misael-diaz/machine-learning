@@ -26,6 +26,7 @@ References:
 #include <iomanip>
 #include <fstream>
 #include <vector>
+#include <random>
 #include <limits>
 #include <tuple>
 #include <cmath>
@@ -40,6 +41,7 @@ std::vector<double> transpose(std::vector<double>);
 std::vector<double> normalize(std::vector<double>);
 std::vector<double> get_features(std::vector<double>);
 std::vector<double> get_target(std::vector<double>);
+std::vector<double> init();
 
 std::tuple<
   std::vector<double>,
@@ -65,7 +67,7 @@ int main ()
 
   const std::vector<double>::size_type num_features = NUM_FEATURES;
   const std::vector<double>::size_type measurements = (X.size() / num_features);
-  std::vector<double> weights(num_features, pow(2, -4));
+  std::vector<double> weights = init();
   std::vector<double> bias(measurements, 0);
 
   std::vector<double> costs;
@@ -236,6 +238,24 @@ std::vector<double> get_target (std::vector<double> dataset)
   }
 
   return y;
+}
+
+
+std::vector<double> init ()
+{
+  const std::vector<double>::size_type num_features = NUM_FEATURES;
+
+  std::random_device randev;
+  std::default_random_engine engine( randev() );
+  std::uniform_real_distribution<double> r(0, 1);
+
+  std::vector<double> weights(num_features);
+  for (std::vector<double>::size_type i = 0; i != num_features; ++i)
+  {
+    weights[i] = pow(2, -4) * r(engine);
+  }
+
+  return weights;
 }
 
 
