@@ -28,7 +28,7 @@ from numpy import arange
 from numpy import loadtxt
 from matplotlib import pyplot as plt
 
-y, y_pred = loadtxt('results.txt').transpose()
+y, y_pred = loadtxt('train-results.txt').transpose()
 t = arange(y.size)
 
 plt.close('all')
@@ -38,4 +38,17 @@ ax.scatter(t, y, color = 'black', label = 'actual')
 ax.scatter(t, y_pred, color = 'red', label = 'predicted')
 ax.set_xlabel('time (days)')
 ax.set_ylabel('non-dimensional temperature')
+ax.set_title('train set')
+ax.legend()
+
+
+y, y_pred = loadtxt('test-results.txt').transpose()
+t = arange(y.size)
+
+fig, ax = plt.subplots()
+ax.scatter(t, y, color = 'black', label = 'actual')
+ax.scatter(t, y_pred, color = 'red', label = 'predicted')
+ax.set_xlabel('time (days)')
+ax.set_ylabel('non-dimensional temperature')
+ax.set_title('test set')
 ax.legend()
