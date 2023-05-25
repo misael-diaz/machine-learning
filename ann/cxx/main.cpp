@@ -6,8 +6,9 @@ source: main.cpp
 author: @misael-diaz
 
 Synopsis:
-Implements an Artificial Neural Network to predict temperature data. The temperature
-dataset has been borrowed from reference [3].
+Implements an Artificial Neural Network ANN to predict temperature data. The ANN
+construction is based on reference [2]. The temperature dataset has been borrowed from
+reference [3].
 
 Copyright (c) 2023 Misael Diaz-Maldonado
 This file is released under the GNU General Public License as published
@@ -28,11 +29,12 @@ References:
 #include <vector>
 #include <random>
 #include <limits>
+#include <string>
 #include <tuple>
 #include <cmath>
 
 #define NUM_FEATURES 4
-#define NUM_ITERATIONS 0x00010000
+#define NUM_ITERATIONS 0x00100000
 #define TOLERANCE 3.814697265625e-06
 #define ALPHA 0.0009765625
 
@@ -40,44 +42,52 @@ References:
 std::vector<double> dataset();
 std::vector<double> transpose(std::vector<double>);
 std::vector<double> normalize(std::vector<double>);
+std::tuple<std::vector<double>, std::vector<double>> split(std::vector<double>);
 std::vector<double> get_features(std::vector<double>);
 std::vector<double> get_target(std::vector<double>);
 std::vector<double> init();
 
 std::tuple<
   std::vector<double>,
-  std::vector<double>,
+  double,
   std::vector<double>
-> optimize (std::vector<double> weights, std::vector<double> bias,
+> optimize (std::vector<double> weights, double bias,
 	    std::vector<double> features, std::vector<double> target);
 
-std::vector<double> prediction (std::vector<double> weights,  std::vector<double> bias,
+std::vector<double> prediction (std::vector<double> weights, double bias,
 				std::vector<double> features);
 
 std::vector<double> error (std::vector<double> y, std::vector<double> y_pred);
 
-void savetxt (std::vector<double> y, std::vector<double> y_pred);
+void savetxt (std::string filename, std::vector<double> y, std::vector<double> y_pred);
 
 
 int main ()
 {
+  std::vector<double> train, test;
   std::vector<double> dset = normalize( transpose( dataset() ) );
-
-  std::vector<double> X = get_features(dset);
-  std::vector<double> y = get_target(dset);
+  std::tie(train, test) = split(dset);
+  std::vector<double> X_train = get_features(train);
+  std::vector<double> y_train = get_target(train);
 
   const std::vector<double>::size_type num_features = NUM_FEATURES;
-  const std::vector<double>::size_type measurements = (X.size() / num_features);
+  const std::vector<double>::size_type measurements = (X_train.size() / num_features);
   std::vector<double> weights = init();
-  std::vector<double> bias(measurements, 0);
+  double bias = 0;
 
   std::vector<double> costs;
-  std::tie(weights, bias, costs) = optimize(weights, bias, X, y);
+  std::tie(weights, bias, costs) = optimize(weights, bias, X_train, y_train);
 
-  std::vector<double> y_pred = prediction(weights, bias, X);
-  std::vector<double> errors = error(y, y_pred);
+  std::vector<double> y_pred = prediction(weights, bias, X_train);
+  std::vector<double> errors = error(y_train, y_pred);
+  savetxt("train-results.txt", y_train, y_pred);
 
-  savetxt(y, y_pred);
+  std::vector<double> X_test = get_features(test);
+  std::vector<double> y_test = get_target(test);
+  savetxt("test-results.txt", y_test, prediction(weights, bias, X_test) );
+
+  std::cout << "train set size: " << train.size() << std::endl;
+  std::cout << "test set size: " << test.size() << std::endl;
 
   /*
   for (auto error : errors)
@@ -85,6 +95,7 @@ int main ()
     std::cout << std::scientific << std::setprecision(12) << error << std::endl;
   }
 
+  std::cout << "costs:" << std::endl;
   for (auto cost : costs)
   {
     std::cout << std::scientific << std::setprecision(12) << cost << std::endl;
@@ -96,11 +107,6 @@ int main ()
     std::cout << std::scientific << std::setprecision(12) << weight << std::endl;
   }
 
-  std::cout << "bias:" << std::endl;
-  for (auto b : bias)
-  {
-    std::cout << std::scientific << std::setprecision(12) << b << std::endl;
-  }
   */
 
   return 0;
@@ -187,6 +193,46 @@ std::vector<double> normalize (std::vector<double> dataset)	// normalizes datase
 }
 
 
+std::tuple<std::vector<double>, std::vector<double>> split (std::vector<double> dataset)
+{
+  const std::vector<double>::size_type columns = (NUM_FEATURES + 1);
+  const std::vector<double>::size_type measurements = (dataset.size() / columns);
+  const std::vector<double>::size_type stride = 8;
+
+  std::vector<double> mask(measurements, 0);
+  for (std::vector<double>::size_type i = 0; i < measurements; i += stride)
+  {
+    mask[i] = 1;
+  }
+
+  std::vector<double> test;
+  for (std::vector<double>::size_type i = 0; i != columns; ++i)
+  {
+    for (std::vector<double>::size_type j = 0; j != measurements; ++j)
+    {
+      if (mask[j] == 1)
+      {
+	test.push_back(dataset[j + measurements * i]);
+      }
+    }
+  }
+
+  std::vector<double> train;
+  for (std::vector<double>::size_type i = 0; i != columns; ++i)
+  {
+    for (std::vector<double>::size_type j = 0; j != measurements; ++j)
+    {
+      if (mask[j] == 0)
+      {
+	train.push_back(dataset[j + measurements * i]);
+      }
+    }
+  }
+
+  return std::make_tuple(train, test);
+}
+
+
 std::vector<double> get_features (std::vector<double> dataset)
 {
   std::vector<double> X;
@@ -262,7 +308,7 @@ std::vector<double> init ()
 
 // std::vector<double> linear (std::vector<double> weights,
 //			       std::vector<double> features,
-//			       std::vector<double> bias)
+//			       double bias)
 // Synopsis:
 // Obtains the linear hypothesis:
 // 			Z = w * X + b,
@@ -271,7 +317,7 @@ std::vector<double> init ()
 // Parameters:
 // weights	vector of size NUM_FEATURES
 // features	vector of size NUM_FEATURES * MEASUREMENTS
-// bias		vector of size MEASUREMENTS
+// bias		scalar
 //
 // Returns:
 // Z		vector of size MEASUREMENTS
@@ -279,7 +325,7 @@ std::vector<double> init ()
 
 std::vector<double> linear (std::vector<double> weights,
 			    std::vector<double> features,
-			    std::vector<double> bias)
+			    double bias)
 {
   const std::vector<double>& X = features;
   const std::vector<double>::size_type num_features = NUM_FEATURES;
@@ -288,16 +334,11 @@ std::vector<double> linear (std::vector<double> weights,
   std::vector<double> Z(measurements);
   for (std::vector<double>::size_type i = 0; i != measurements; ++i)
   {
-    Z[i] = 0.0;
+    Z[i] = bias;
     for (std::vector<double>::size_type j = 0; j != num_features; ++j)
     {
       Z[i] += (weights[j] * X[i + measurements * j]);
     }
-  }
-
-  for (std::vector<double>::size_type i = 0; i != measurements; ++i)
-  {
-    Z[i] += bias[i];
   }
 
   return Z;
@@ -316,7 +357,7 @@ std::vector<double> sigmoid (std::vector<double> Z)
 
 
 // double forward_propagation (std::vector<double> weights,
-//			       std::vector<double> bias,
+//			       double bias,
 //			       std::vector<double> features,
 //			       std::vector<double> target)
 //
@@ -325,7 +366,7 @@ std::vector<double> sigmoid (std::vector<double> Z)
 //
 // Parameters:
 // weights	vector of size NUM_FEATURES
-// bias		vector of size MEASUREMENTS
+// bias		scalar
 // features	vector of size MEASUREMENTS * NUM_FEATURES
 // target	vector of size MEASUREMENTS
 //
@@ -334,12 +375,12 @@ std::vector<double> sigmoid (std::vector<double> Z)
 
 
 double forward_propagation (std::vector<double> weights,
-			    std::vector<double> bias,
+			    double bias,
 			    std::vector<double> features,
 			    std::vector<double> target)
 {
   const std::vector<double>& w = weights;
-  const std::vector<double>& b = bias;
+  const double b = bias;
   const std::vector<double>& X = features;
   const std::vector<double>& y = target;
 
@@ -360,7 +401,7 @@ double forward_propagation (std::vector<double> weights,
 
 
 // std::tuple backward_propagation (std::vector<double> weights,
-//			            std::vector<double> bias,
+//			            double bias,
 //			            std::vector<double> features,
 //			            std::vector<double> target)
 //
@@ -369,7 +410,7 @@ double forward_propagation (std::vector<double> weights,
 //
 // Parameters:
 // weights	vector of size NUM_FEATURES
-// bias		vector of size MEASUREMENTS
+// bias		scalar
 // features	vector of size MEASUREMENTS * NUM_FEATURES
 // target	vector of size MEASUREMENTS
 //
@@ -379,12 +420,12 @@ double forward_propagation (std::vector<double> weights,
 
 std::tuple<
   std::vector<double>,
-  std::vector<double>
-> backward_propagation (std::vector<double> weights, std::vector<double> bias,
+  double
+> backward_propagation (std::vector<double> weights, double bias,
 			std::vector<double> features, std::vector<double> target)
 {
   const std::vector<double>& w = weights;
-  const std::vector<double>& b = bias;
+  const double b = bias;
   const std::vector<double>& X = features;
   const std::vector<double>& y = target;
 
@@ -405,10 +446,10 @@ std::tuple<
     }
   }
 
-  std::vector<double> dbias(measurements);
+  double dbias = 0;
   for (std::vector<double>::size_type i = 0; i != measurements; ++i)
   {
-    dbias[i] = (A[i] - y[i]);
+    dbias += mult * (A[i] - y[i]);
   }
 
   return std::make_tuple(dweights, dbias);
@@ -441,11 +482,11 @@ double modulus (std::vector<double> vec)
 
 
 // predicts the temperature, expects the optimal weight and bias as parameters
-std::vector<double> prediction (std::vector<double> weights,  std::vector<double> bias,
+std::vector<double> prediction (std::vector<double> weights,  double bias,
 				std::vector<double> features)
 {
   const std::vector<double>& w = weights;
-  const std::vector<double>& b = bias;
+  const double b = bias;
   const std::vector<double>& X = features;
 
   const std::vector<double>& Z = linear(w, X, b);
@@ -468,7 +509,7 @@ std::vector<double> error (std::vector<double> y, std::vector<double> y_pred)
 
 
 // std::tuple optimize (std::vector<double> weights,
-//	 	        std::vector<double> bias,
+//	 	        double bias,
 //		        std::vector<double> features,
 //		        std::vector<double> target)
 //
@@ -477,7 +518,7 @@ std::vector<double> error (std::vector<double> y, std::vector<double> y_pred)
 //
 // Parameters:
 // weights	vector of size NUM_FEATURES
-// bias		vector of size MEASUREMENTS
+// bias		scalar
 // features	vector of size MEASUREMENTS * NUM_FEATURES
 // target	vector of size MEASUREMENTS
 //
@@ -487,15 +528,16 @@ std::vector<double> error (std::vector<double> y, std::vector<double> y_pred)
 
 std::tuple<
   std::vector<double>,
-  std::vector<double>,
+  double,
   std::vector<double>
-> optimize (std::vector<double> weights,  std::vector<double> bias,
+> optimize (std::vector<double> weights, double bias,
 	    std::vector<double> features, std::vector<double> target)
 {
   const double tol = TOLERANCE;
+  const double alpha = ALPHA;
 
   std::vector<double>& w = weights;
-  std::vector<double>& b = bias;
+  double b = bias;
   const std::vector<double>& X = features;
   const std::vector<double>& y = target;
 
@@ -505,7 +547,8 @@ std::tuple<
     double cost = forward_propagation(w, b, X, y);
     costs.push_back(cost);
 
-    std::vector<double> dw, db;
+    double db;
+    std::vector<double> dw;
     std::tie(dw, db) = backward_propagation(w, b, X, y);
 
     std::vector<double> y_pred = prediction(w, b, X);
@@ -519,7 +562,7 @@ std::tuple<
     }
 
     w = update(w, dw);
-    b = update(b, db);
+    b += (-alpha * db);
   }
 
   return std::make_tuple(weights, bias, costs);
@@ -527,10 +570,10 @@ std::tuple<
 
 
 // saves the actual and the predicted temperatures to a plain text file
-void savetxt (std::vector<double> y, std::vector<double> y_pred)
+void savetxt (std::string filename, std::vector<double> y, std::vector<double> y_pred)
 {
   std::ofstream out;
-  out.open("results.txt", std::ios::out);
+  out.open(filename, std::ios::out);
   for (std::vector<double>::size_type i = 0; i != y.size(); ++i)
   {
     out << std::scientific << std::setprecision(12)
@@ -542,13 +585,10 @@ void savetxt (std::vector<double> y, std::vector<double> y_pred)
 
 // COMMENTS:
 // There's room for improvement but it's not bad given it is the first time I attempt to
-// build an Artificial Neural Network from scratch. The predicted temperatures captures
-// the qualitative behavior of the actual temperatures (execute plots.py to look at the
-// plot).
-//
-// You will notice that the computation of the gradient of the bias differs from that of
-// reference [2]. Do not agonize because the gradient is not exact, for the steepest
-// descent method can work even if the direction of descent is not optimal.
+// build an Artificial Neural Network from scratch. The ANN model captures the qualitative
+// behavior of the actual temperatures, for the ANN consists of just the input layer.
+// You may wish to execute the python script plots.py to look at the graphs of the
+// predicted temperature for the train and test sets.
 //
 // Decided to store the entire dataset in a vector rather than using a second-rank array
 // because I prefer to use vectors over arrays in C++.
@@ -569,7 +609,7 @@ void savetxt (std::vector<double> y, std::vector<double> y_pred)
 // TODO:
 //
 // [ ] consider passing vectors by reference to reduce the copy overhead
-// [ ] consider splitting into train and test sets to assess the ability of the ANN to
+// [x] consider splitting into train and test sets to assess the ability of the ANN to
 //     predict future values
 // [x] consider adding a convergence criterion for optimize instead of just hoping that
 //     the model has learned enough from the dataset upon reaching the MAX_ITERATIONS
