@@ -78,8 +78,7 @@ polX_test = pf.fit_transform(stdX_test)
 
 ''' gets polynomial model '''
 
-model = LinearRegression (fit_intercept = True, normalize = False,
-                          copy_X = True, n_jobs = None)
+model = LinearRegression (fit_intercept = True, copy_X = True, n_jobs = None)
 
 model.fit(polX_train, y_train)
 score = model.score(polX_test, y_test)
@@ -88,7 +87,7 @@ print(f'polynomial model score: {score}')
 ''' gets regularized polynomial model '''
 
 model = LassoCV(eps = 2**-16, n_alphas = 256, alphas = None, fit_intercept = True,
-                normalize = False, precompute = 'auto', max_iter = 1024, tol = 2**-16,
+                precompute = 'auto', max_iter = 1024, tol = 2**-16,
                 copy_X = True, cv = 5, verbose = False, n_jobs = None,
                 positive = False, random_state = None, selection = 'cyclic')
 

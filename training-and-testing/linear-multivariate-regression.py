@@ -70,16 +70,14 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2,
                                                     random_state = 0)
 
 # obtains a linear model
-model = LinearRegression (fit_intercept = True, normalize = True,
-                          copy_X = True, n_jobs = None)
+model = LinearRegression (fit_intercept = True, copy_X = True, n_jobs = None)
 model.fit(X_train, y_train)
 score = model.score(X_test, y_test)
 print(f'linear model score: {score}')
 
-
 # obtains a regularized linear model
 model = LassoCV(eps = 2**-16, n_alphas = 256, alphas = None, fit_intercept = True,
-                normalize = True, precompute = 'auto', max_iter = 1024, tol = 2**-16,
+                precompute = 'auto', max_iter = 1024, tol = 2**-16,
                 copy_X = True, cv = 5, verbose = False, n_jobs = None,
                 positive = False, random_state = None, selection = 'cyclic')
 
