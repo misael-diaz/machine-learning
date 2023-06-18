@@ -1,0 +1,40 @@
+# Machine Learning					  January 16, 2023
+#
+# source: make-inc
+# author: @misael-diaz
+#
+# Synopsis:
+# Defines the include file for building the project source codes with GNU make.
+#
+# Copyright (c) 2023 Misael Diaz-Maldonado
+# This file is released under the GNU General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+
+## compiler
+
+CXX = g++
+
+# enables optimizations
+CXXOPT = -O2
+
+# debugging options
+CXXOPT = -g -Wall -Wextra -O0
+
+
+## source files
+
+# main
+MAIN_CXX = main.cpp
+
+
+## objects
+MAIN_OBJ = main.o
+
+OBJECTS = $(MAIN_OBJ)
+
+
+## executables
+MAIN_BIN = test-knn.bin
+TESTS = $(MAIN_BIN)
