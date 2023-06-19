@@ -83,14 +83,12 @@ std::vector<Data> dataset ()
 }
 
 
-Data knn (int const Kth, Data const& target, std::vector<Data>& dset)
+Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
 {
   // we need this predicate lambda function for sorting the dataset
   auto const pred = [](const Data& data1, const Data& data2) -> bool {
     return (data1.X < data2.X);
   };
-
-  std::sort(dset.begin(), dset.end(), pred);
 
   // divides into left and right partitions
   auto const div = std::lower_bound(dset.begin(), dset.end(), target, pred);
