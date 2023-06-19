@@ -38,7 +38,7 @@ struct Data
 
   Data(double const X, double const y) : X(X), y(y) {}
 
-  double dist(const Data& data)
+  double dist(const Data& data) const
   {
     double const x1 = this -> X;
     double const x2 = data.X;
@@ -46,11 +46,11 @@ struct Data
   }
 };
 
-void test_knn();
+void test();
 
 int main ()
 {
-  test_knn();
+  test();
   return 0;
 }
 
@@ -82,31 +82,32 @@ std::vector<Data> dataset ()
   return dset;
 }
 
-void test_knn ()
+
+Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
 {
   // we need this predicate lambda function for sorting the dataset
   auto const pred = [](const Data& data1, const Data& data2) -> bool {
     return (data1.X < data2.X);
   };
 
-  std::vector<Data> dset = dataset();
-  std::sort(dset.begin(), dset.end(), pred);
-
-  Data const target(128, 0);
+  // divides into left and right partitions
   auto const div = std::lower_bound(dset.begin(), dset.end(), target, pred);
   int index = std::distance(dset.begin(), div);
 
-  // stores the nearest neighbors for testing the implementation of the KNN algorithm
-  std::vector<double> distances;
-  for (auto& elem : dset)
+  if (index == 0)
   {
-    double const dist = elem.dist(target);
-    distances.push_back(dist);
+    // target is greater than or equal to min value in dataset, O(1) look up in rigth
+    return dset[Kth - 1];
   }
 
-  std::sort(distances.begin(), distances.end());
+  int size = dset.size();
+  if ( index == (size - 1) )
+  {
+    // target is less than or equal to max value in dataset, O(1) loop up in left
+    return dset[size - Kth];
+  }
 
-  // finds the 1st nearest neighbor
+  // traversal algorithm: finds the 1st nearest neighbor
   int i = (index - 1);
   int j = index;
   Data first(dset[i]);
@@ -125,20 +126,23 @@ void test_knn ()
 
     first = second;
     second = tmp;
-    
+
     d1 = d2;
     d2 = d;
   }
 
-  // gets the index of the next tree node
   index = (i < j)? (i - 1) : (i + 1);
 
-  // initializes the error of the kth nearest neighbor
-  double diff = (distances[0] - d1);
+  if (Kth == 1)
+  {
+    return first;
+  }
 
-  int last = 0;
-  // finds the 2nd, 3rd, 4th, etc. nearest neighbors dynamically by traversing the tree
-  for (int k = 1; k != 200; ++k)
+  // traversal algorithm: finds the 2nd, 3rd, 4th, etc. nearest neighbors dynamically
+
+  int last = 1;
+  bool forward = true;
+  for (int k = 1; k != Kth; ++k)
   {
     Data data(dset[index]);
     double d = data.dist(target);
@@ -165,29 +169,86 @@ void test_knn ()
 
     index = (i < j)? (i - 1) : (i + 1);
 
-    // updates the error
-    diff += (distances[k] - d1);
-
     // switches algorithm if the left partition is depleted:
     if (index < 0)
     {
+      forward = true;
       last = (k + 1);
       index = j;
       break;
     }
-    
+
+    // switches algorithm if the right partition is depleted:
+    if (index >= size)
+    {
+      forward = false;
+      last = (k + 1);
+      index = j;
+      break;
+    }
+
   }
 
-  // if the left partition is depleted we continue with the right partition in order
-  for (int k = last; k != 200; ++k)
+  // returns the Kth nearest neighbor when the traversal algorithm succeeds:
+  if (last == 1 || last == Kth)
   {
-    Data data(dset[index]);
-    double d = data.dist(target);
-    diff += (distances[k] - d);
-    ++index;
+    // Note:
+    // when last == Kth, this means the algorithm succeeded just in time since there were
+    // no more elements in the left (or right) partition when the algorithm succeeded
+    return first;
   }
 
-  std::cout << "test[0]: ";
+
+  // gets the Kth nearest neighbor in the right partition, O(1), by computing its location
+  if (forward)
+  {
+    index += (Kth - last - 1);
+    first = dset[index];
+    return first;
+  }
+  else
+  {
+    index -= (Kth - last - 1);
+    first = dset[index];
+    return first;
+  }
+}
+
+
+// tests by looking all the kth nearest neighbors for each dataset element (target)
+void test ()
+{
+  // we need this predicate lambda function for sorting the dataset
+  auto const pred = [](const Data& data1, const Data& data2) -> bool {
+    return (data1.X < data2.X);
+  };
+
+  std::vector<Data> dset = dataset();
+  std::sort(dset.begin(), dset.end(), pred);
+
+  double diff = 0;
+  for (const auto& target : dset)
+  {
+    std::vector<double> distances;
+    for (const auto& elem : dset)
+    {
+      double const dist = elem.dist(target);
+      distances.push_back(dist);
+    }
+
+    std::sort(distances.begin(), distances.end());
+
+    for (std::vector<Data>::size_type k = 0; k != dset.size(); ++k)
+    {
+      int const Kth = (k + 1);
+      Data const kthElem = knn(Kth, target, dset);
+      double const computed = kthElem.dist(target);
+      double const expected = distances[k];
+      diff += (computed - expected) * (computed - expected);
+    }
+  }
+
+  std::cout << "knn-test: ";
   if (diff != 0)
   {
     std::cout << "FAIL" << std::endl;
