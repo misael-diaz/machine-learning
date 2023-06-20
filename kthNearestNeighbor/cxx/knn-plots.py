@@ -30,7 +30,7 @@ df = pd.read_csv('datasets/Advertising.csv')
 dataset = df[['TV', 'sales']]
 xi, yi = dataset.to_numpy().transpose()
 
-x, y = loadtxt('results/1stNearestNeighbors.txt').transpose()
+x, y = loadtxt('results/21thNearestNeighbors.txt').transpose()
 
 plt.close('all')
 plt.ion()
