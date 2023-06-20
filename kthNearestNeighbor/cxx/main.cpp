@@ -149,7 +149,7 @@ Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
     return dset[Kth - 1];
   }
 
-  if ( index == (size - 1) )
+  if (index == size)
   {
     // target is less than or equal to max value in dataset, O(1) loop up in left
     return dset[size - Kth];
