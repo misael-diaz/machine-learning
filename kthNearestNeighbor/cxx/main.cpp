@@ -93,6 +93,26 @@ Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
     return (data1.X < data2.X);
   };
 
+  // warns user about invalid input (TODO: throw an exception)
+  int const size = dset.size();
+  if (Kth < 1 || Kth > size)
+  {
+    std::string err = "KNN(): Kth outside the valid arange [1, " +
+		      std::to_string(1 + size) + ")";
+    std::cout << err << std::endl;
+    return Data();
+  }
+
+  // could increase the size limit later if really needed
+  int const maxSize = std::numeric_limits<int>::max() / 2;
+  if (size > maxSize)
+  {
+    std::string err = "KNN(): expects a dataset size less than or equal to " +
+		      std::to_string(maxSize);
+    std::cout << err << std::endl;
+    return Data();
+  }
+
   // divides into left and right partitions
   auto const div = std::lower_bound(dset.begin(), dset.end(), target, pred);
   int index = std::distance(dset.begin(), div);
@@ -103,7 +123,6 @@ Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
     return dset[Kth - 1];
   }
 
-  int size = dset.size();
   if ( index == (size - 1) )
   {
     // target is less than or equal to max value in dataset, O(1) loop up in left
@@ -139,6 +158,20 @@ Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
   if (Kth == 1)
   {
     return first;
+  }
+
+  if (index < 0)		// caters left partition depletion
+  {
+    index = j;
+    index += (Kth - 2);
+    return dset[index];
+  }
+
+  if (index == size)		// caters right partition depletion
+  {
+    index = j;
+    index -= (Kth - 2);
+    return dset[index];
   }
 
   // traversal algorithm: finds the 2nd, 3rd, 4th, etc. nearest neighbors dynamically
@@ -287,18 +320,43 @@ void ads ()
   };
   std::transform(ids.begin(), ids.end(), x.begin(), linspace);
 
+  double diff = 0;
+  int const K = 16;
   std::vector<double> y;
   // finds the 1st Nearest Neighbors
   for (auto const& elem : x)
   {
     Data const target(elem, 0);
-    Data const data = knn(1, target, dset);
+
+    std::vector<double> distances;
+    for (const auto& e : dset)
+    {
+      double const dist = e.dist(target);
+      distances.push_back(dist);
+    }
+
+    std::sort(distances.begin(), distances.end());
+
+    Data const data = knn(K, target, dset);
     double const value = data.y;
+    double const computed = data.dist(target);
+    double const expected = distances[K - 1];
+    diff += (computed - expected) * (computed - expected);
     y.push_back(value);
   }
 
+  std::cout << "knn-ads-test: ";
+  if (diff != 0)
+  {
+    std::cout << "FAIL" << std::endl;
+  }
+  else
+  {
+    std::cout << "PASS" << std::endl;
+  }
+
   std::ofstream out;
-  std::string fname = "results/1stNearestNeighbors.txt";
+  std::string fname = "results/" + std::to_string(K) + "thNearestNeighbors.txt";
   out.open(fname, std::ios::out);
 
   if ( !out.is_open() )
@@ -314,3 +372,7 @@ void ads ()
 
   out.close();
 }
+
+
+// TODO:
+// [ ] throw exceptions on invalid inputs
