@@ -87,13 +87,26 @@ std::vector<Data> dataset ()
 }
 
 
-Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
+void isSorted (std::vector<Data> const& dset)
 {
-  // we need this predicate lambda function for sorting the dataset
-  auto const pred = [](const Data& data1, const Data& data2) -> bool {
+  auto const comp = [](const Data& data1, const Data& data2) -> bool {
     return (data1.X < data2.X);
   };
 
+  for (std::vector<Data>::size_type i = 0; i != (dset.size() - 1); ++i)
+  {
+    bool const isNextElemSmaller = comp(dset[i + 1], dset[i]);
+    if (isNextElemSmaller)
+    {
+      std::string const err = "KNN(): expects a sorted dataset";
+      throw std::invalid_argument(err);
+    }
+  }
+}
+
+
+void hasInvalidInput (int const Kth, std::vector<Data> const& dset)
+{
   // warns user about invalid input
   int const size = dset.size();
   if (Kth < 1 || Kth > size)
@@ -112,6 +125,20 @@ Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
     throw std::invalid_argument(err);
   }
 
+  isSorted(dset);
+}
+
+
+Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
+{
+  // we need this predicate lambda function for sorting the dataset
+  auto const pred = [](const Data& data1, const Data& data2) -> bool {
+    return (data1.X < data2.X);
+  };
+
+  hasInvalidInput(Kth, dset);
+
+  int const size = dset.size();
   // divides into left and right partitions
   auto const div = std::lower_bound(dset.begin(), dset.end(), target, pred);
   int index = std::distance(dset.begin(), div);
