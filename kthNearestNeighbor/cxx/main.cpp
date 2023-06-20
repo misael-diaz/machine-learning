@@ -48,14 +48,266 @@ struct Data
   }
 };
 
+struct gData
+{
+  std::vector<double> X;	// features vector
+  double y;			// response or output
+
+  gData() : y(0) {}
+
+  gData(const std::vector<double>& X, double const y)
+  {
+    this -> X = std::vector<double>(X);
+    this -> y = y;
+  }
+
+  double dist(const gData& data) const
+  {
+    double d = 0;
+    const std::vector<double>& x1 = this -> X;
+    const std::vector<double>& x2 = data.X;
+    for (std::vector<double>::size_type i = 0; i != X.size(); ++i)
+    {
+      d += (x1[i] - x2[i]) * (x1[i] - x2[i]);
+    }
+
+    return d;
+  }
+};
+
 void ads();
 void test();
+void gtest();
 
 int main ()
 {
   ads();
   test();
+  gtest();
   return 0;
+}
+
+
+std::vector<gData> gDataset ()
+{
+  std::ifstream in;
+  std::string const fname = "datasets/Advertising.txt";
+  in.open(fname, std::ios::in);
+
+  std::vector<gData> dset;
+  if ( in.is_open() )
+  {
+    double record;
+    double TV;
+    double radio;
+    double newspaper;
+    double sales;
+    while (in >> record >> TV >> radio >> newspaper >> sales)
+    {
+      const std::vector<double> X{ TV, radio, newspaper };
+      double const y = sales;
+      gData const data(X, y);
+      dset.push_back(data);
+    }
+
+    in.close();
+  }
+
+  return dset;
+}
+
+
+void isSorted (gData const& target, std::vector<gData> const& dset)
+{
+  auto const comp = [&target](const gData& data1, const gData& data2) -> bool {
+    double const d1 = data1.dist(target);
+    double const d2 = data2.dist(target);
+    return (d1 < d2);
+  };
+
+  for (std::vector<gData>::size_type i = 0; i != (dset.size() - 1); ++i)
+  {
+    bool const isNextElemSmaller = comp(dset[i + 1], dset[i]);
+    if (isNextElemSmaller)
+    {
+      std::string const err = "KNN(): expects a sorted dataset";
+      throw std::invalid_argument(err);
+    }
+  }
+}
+
+
+void hasInvalidInput (int const Kth, gData const& target, std::vector<gData> const& dset)
+{
+  // warns user about invalid input
+  int const size = dset.size();
+  if (Kth < 1 || Kth > size)
+  {
+    std::string const err = "KNN(): Kth outside the valid arange [1, " +
+			    std::to_string(1 + size) + ")";
+    throw std::invalid_argument(err);
+  }
+
+  // could increase the size limit later if really needed
+  int const maxSize = std::numeric_limits<int>::max() / 2;
+  if (size > maxSize)
+  {
+    std::string const err = "KNN(): expects a dataset size less than or equal to " +
+			    std::to_string(maxSize);
+    throw std::invalid_argument(err);
+  }
+
+  isSorted(target, dset);
+}
+
+
+gData knn (int const Kth, gData const& target, std::vector<gData> const& dset)
+{
+  // we need this predicate lambda function for sorting the dataset
+  auto const pred = [&target](const gData& data1, const gData& data2) -> bool {
+    double const d1 = data1.dist(target);
+    double const d2 = data2.dist(target);
+    return (d1 < d2);
+  };
+
+  hasInvalidInput(Kth, target, dset);
+
+  int const size = dset.size();
+  // divides into left and right partitions
+  auto const div = std::lower_bound(dset.begin(), dset.end(), target, pred);
+  int index = std::distance(dset.begin(), div);
+
+  if (index == 0)
+  {
+    // target is greater than or equal to min value in dataset, O(1) look up in right
+    return dset[Kth - 1];
+  }
+
+  if (index == size)
+  {
+    // target is less than or equal to max value in dataset, O(1) look up in left
+    return dset[size - Kth];
+  }
+
+  // traversal algorithm: finds the 1st nearest neighbor
+  int i = (index - 1);
+  int j = index;
+  gData first(dset[i]);
+  gData second(dset[j]);
+  double d1 = first.dist(target);
+  double d2 = second.dist(target);
+
+  if (d2 < d1)
+  {
+    int larger = i;
+    i = j;
+    j = larger;
+
+    double const d = d1;
+    gData tmp(first);
+
+    first = second;
+    second = tmp;
+
+    d1 = d2;
+    d2 = d;
+  }
+
+  index = (i < j)? (i - 1) : (i + 1);
+
+  if (Kth == 1)
+  {
+    return first;
+  }
+
+  if (index < 0)		// caters left partition depletion
+  {
+    index = j;
+    index += (Kth - 2);
+    return dset[index];
+  }
+
+  if (index == size)		// caters right partition depletion
+  {
+    index = j;
+    index -= (Kth - 2);
+    return dset[index];
+  }
+
+  // traversal algorithm: finds the 2nd, 3rd, 4th, etc. nearest neighbors dynamically
+
+  int last = 1;
+  bool forward = true;
+  for (int k = 1; k != Kth; ++k)
+  {
+    gData data(dset[index]);
+    double d = data.dist(target);
+
+    if (d < d2)
+    {
+      gData tmp(second);
+      second = data;
+      data = tmp;
+
+      int larger = j;
+      j = index;
+      index = larger;
+    }
+
+    i = j;
+    j = index;
+
+    first = second;
+    second = data;
+
+    d1 = first.dist(target);
+    d2 = second.dist(target);
+
+    index = (i < j)? (i - 1) : (i + 1);
+
+    // switches algorithm if the left partition is depleted:
+    if (index < 0)
+    {
+      forward = true;
+      last = (k + 1);
+      index = j;
+      break;
+    }
+
+    // switches algorithm if the right partition is depleted:
+    if (index >= size)
+    {
+      forward = false;
+      last = (k + 1);
+      index = j;
+      break;
+    }
+
+  }
+
+  // returns the Kth nearest neighbor when the traversal algorithm succeeds:
+  if (last == 1 || last == Kth)
+  {
+    // Note:
+    // when last == Kth, this means the algorithm succeeded just in time since there were
+    // no more elements in the left (or right) partition when the algorithm succeeded
+    return first;
+  }
+
+
+  // gets the Kth nearest neighbor in the right partition, O(1), by computing its location
+  if (forward)
+  {
+    index += (Kth - last - 1);
+    first = dset[index];
+    return first;
+  }
+  else
+  {
+    index -= (Kth - last - 1);
+    first = dset[index];
+    return first;
+  }
 }
 
 
@@ -274,6 +526,54 @@ Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
     first = dset[index];
     return first;
   }
+}
+
+
+void gtest ()
+{
+  std::vector<gData> const dset = gDataset();
+
+  double diff = 0;
+  for (const auto& target : dset)
+  {
+    std::vector<double> distances;
+    for (const auto& elem : dset)
+    {
+      double const dist = elem.dist(target);
+      distances.push_back(dist);
+    }
+
+    std::sort(distances.begin(), distances.end());
+
+    auto const pred = [&target](const gData& data1, const gData& data2) -> bool {
+      double const d1 = data1.dist(target);
+      double const d2 = data2.dist(target);
+      return (d1 < d2);
+    };
+
+    std::vector<gData> set(dset);
+    std::sort(set.begin(), set.end(), pred);
+
+    for (std::vector<gData>::size_type k = 0; k != dset.size(); ++k)
+    {
+      int const Kth = (k + 1);
+      gData const kthElem = knn(Kth, target, set);
+      double const computed = kthElem.dist(target);
+      double const expected = distances[k];
+      diff += (computed - expected) * (computed - expected);
+    }
+  }
+
+  std::cout << "knn-test: ";
+  if (diff != 0)
+  {
+    std::cout << "FAIL" << std::endl;
+  }
+  else
+  {
+    std::cout << "PASS" << std::endl;
+  }
+
 }
 
 
