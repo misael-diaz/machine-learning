@@ -25,6 +25,7 @@ References:
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <numeric>
 #include <vector>
 #include <string>
 #include <limits>
@@ -46,10 +47,12 @@ struct Data
   }
 };
 
+void ads();
 void test();
 
 int main ()
 {
+  ads();
   test();
   return 0;
 }
@@ -258,4 +261,56 @@ void test ()
     std::cout << "PASS" << std::endl;
   }
 
+}
+
+
+void ads ()
+{
+  // we need this predicate lambda function for sorting the dataset
+  auto const pred = [](const Data& data1, const Data& data2) -> bool {
+    return (data1.X < data2.X);
+  };
+
+  std::vector<Data> dset = dataset();
+  std::sort(dset.begin(), dset.end(), pred);
+
+  double const x_min = dset[0].X;
+  double const x_max = dset[dset.size() - 1].X;
+  std::vector<double>::size_type N = 256;
+  double const dx = (x_max - x_min) / ( (double) N );
+
+  std::vector<double> x(N + 1);
+  std::vector<double> ids(N + 1);
+  std::iota(ids.begin(), ids.end(), 0);
+  auto linspace = [&dx, &x_min](double const& idx) -> double {
+    return (x_min + idx * dx);
+  };
+  std::transform(ids.begin(), ids.end(), x.begin(), linspace);
+
+  std::vector<double> y;
+  // finds the 1st Nearest Neighbors
+  for (auto const& elem : x)
+  {
+    Data const target(elem, 0);
+    Data const data = knn(1, target, dset);
+    double const value = data.y;
+    y.push_back(value);
+  }
+
+  std::ofstream out;
+  std::string fname = "results/1stNearestNeighbors.txt";
+  out.open(fname, std::ios::out);
+
+  if ( !out.is_open() )
+  {
+    std::cout << "IO Error: failed to open " + fname << std::endl;
+    return;
+  }
+
+  for (std::vector<double>::size_type i = 0; i != x.size(); ++i)
+  {
+    out << x[i] << "\t" << y[i] << std::endl;
+  }
+
+  out.close();
 }
