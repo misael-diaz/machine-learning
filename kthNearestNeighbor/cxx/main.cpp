@@ -145,13 +145,13 @@ Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
 
   if (index == 0)
   {
-    // target is greater than or equal to min value in dataset, O(1) look up in rigth
+    // target is greater than or equal to min value in dataset, O(1) look up in right
     return dset[Kth - 1];
   }
 
   if (index == size)
   {
-    // target is less than or equal to max value in dataset, O(1) loop up in left
+    // target is less than or equal to max value in dataset, O(1) look up in left
     return dset[size - Kth];
   }
 
