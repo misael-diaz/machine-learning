@@ -21,6 +21,7 @@ References:
 
 */
 
+#include <stdexcept>
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
@@ -93,24 +94,22 @@ Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
     return (data1.X < data2.X);
   };
 
-  // warns user about invalid input (TODO: throw an exception)
+  // warns user about invalid input
   int const size = dset.size();
   if (Kth < 1 || Kth > size)
   {
-    std::string err = "KNN(): Kth outside the valid arange [1, " +
-		      std::to_string(1 + size) + ")";
-    std::cout << err << std::endl;
-    return Data();
+    std::string const err = "KNN(): Kth outside the valid arange [1, " +
+			    std::to_string(1 + size) + ")";
+    throw std::invalid_argument(err);
   }
 
   // could increase the size limit later if really needed
   int const maxSize = std::numeric_limits<int>::max() / 2;
   if (size > maxSize)
   {
-    std::string err = "KNN(): expects a dataset size less than or equal to " +
-		      std::to_string(maxSize);
-    std::cout << err << std::endl;
-    return Data();
+    std::string const err = "KNN(): expects a dataset size less than or equal to " +
+			    std::to_string(maxSize);
+    throw std::invalid_argument(err);
   }
 
   // divides into left and right partitions
