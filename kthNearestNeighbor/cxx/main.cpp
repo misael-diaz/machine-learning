@@ -21,6 +21,7 @@ References:
 
 */
 
+#include <stdexcept>
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
@@ -86,6 +87,48 @@ std::vector<Data> dataset ()
 }
 
 
+void isSorted (std::vector<Data> const& dset)
+{
+  auto const comp = [](const Data& data1, const Data& data2) -> bool {
+    return (data1.X < data2.X);
+  };
+
+  for (std::vector<Data>::size_type i = 0; i != (dset.size() - 1); ++i)
+  {
+    bool const isNextElemSmaller = comp(dset[i + 1], dset[i]);
+    if (isNextElemSmaller)
+    {
+      std::string const err = "KNN(): expects a sorted dataset";
+      throw std::invalid_argument(err);
+    }
+  }
+}
+
+
+void hasInvalidInput (int const Kth, std::vector<Data> const& dset)
+{
+  // warns user about invalid input
+  int const size = dset.size();
+  if (Kth < 1 || Kth > size)
+  {
+    std::string const err = "KNN(): Kth outside the valid arange [1, " +
+			    std::to_string(1 + size) + ")";
+    throw std::invalid_argument(err);
+  }
+
+  // could increase the size limit later if really needed
+  int const maxSize = std::numeric_limits<int>::max() / 2;
+  if (size > maxSize)
+  {
+    std::string const err = "KNN(): expects a dataset size less than or equal to " +
+			    std::to_string(maxSize);
+    throw std::invalid_argument(err);
+  }
+
+  isSorted(dset);
+}
+
+
 Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
 {
   // we need this predicate lambda function for sorting the dataset
@@ -93,39 +136,22 @@ Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
     return (data1.X < data2.X);
   };
 
-  // warns user about invalid input (TODO: throw an exception)
+  hasInvalidInput(Kth, dset);
+
   int const size = dset.size();
-  if (Kth < 1 || Kth > size)
-  {
-    std::string err = "KNN(): Kth outside the valid arange [1, " +
-		      std::to_string(1 + size) + ")";
-    std::cout << err << std::endl;
-    return Data();
-  }
-
-  // could increase the size limit later if really needed
-  int const maxSize = std::numeric_limits<int>::max() / 2;
-  if (size > maxSize)
-  {
-    std::string err = "KNN(): expects a dataset size less than or equal to " +
-		      std::to_string(maxSize);
-    std::cout << err << std::endl;
-    return Data();
-  }
-
   // divides into left and right partitions
   auto const div = std::lower_bound(dset.begin(), dset.end(), target, pred);
   int index = std::distance(dset.begin(), div);
 
   if (index == 0)
   {
-    // target is greater than or equal to min value in dataset, O(1) look up in rigth
+    // target is greater than or equal to min value in dataset, O(1) look up in right
     return dset[Kth - 1];
   }
 
-  if ( index == (size - 1) )
+  if (index == size)
   {
-    // target is less than or equal to max value in dataset, O(1) loop up in left
+    // target is less than or equal to max value in dataset, O(1) look up in left
     return dset[size - Kth];
   }
 
@@ -321,28 +347,49 @@ void ads ()
   std::transform(ids.begin(), ids.end(), x.begin(), linspace);
 
   double diff = 0;
-  int const K = 16;
-  std::vector<double> y;
-  // finds the 1st Nearest Neighbors
-  for (auto const& elem : x)
+  int const size = dset.size();
+  for (int k = 0; k != size; ++k)
   {
-    Data const target(elem, 0);
-
-    std::vector<double> distances;
-    for (const auto& e : dset)
+    int const K = (k + 1);
+    std::vector<double> y;
+    // finds the 1st Nearest Neighbors
+    for (auto const& elem : x)
     {
-      double const dist = e.dist(target);
-      distances.push_back(dist);
+      Data const target(elem, 0);
+
+      std::vector<double> distances;
+      for (const auto& e : dset)
+      {
+	double const dist = e.dist(target);
+	distances.push_back(dist);
+      }
+
+      std::sort(distances.begin(), distances.end());
+
+      Data const data = knn(K, target, dset);
+      double const value = data.y;
+      double const computed = data.dist(target);
+      double const expected = distances[K - 1];
+      diff += (computed - expected) * (computed - expected);
+      y.push_back(value);
     }
 
-    std::sort(distances.begin(), distances.end());
+    std::ofstream out;
+    std::string fname = "results/" + std::to_string(K) + "thNearestNeighbors.txt";
+    out.open(fname, std::ios::out);
 
-    Data const data = knn(K, target, dset);
-    double const value = data.y;
-    double const computed = data.dist(target);
-    double const expected = distances[K - 1];
-    diff += (computed - expected) * (computed - expected);
-    y.push_back(value);
+    if ( !out.is_open() )
+    {
+      std::cout << "IO Error: failed to open " + fname << std::endl;
+      return;
+    }
+
+    for (std::vector<double>::size_type i = 0; i != x.size(); ++i)
+    {
+      out << x[i] << "\t" << y[i] << std::endl;
+    }
+
+    out.close();
   }
 
   std::cout << "knn-ads-test: ";
@@ -354,23 +401,6 @@ void ads ()
   {
     std::cout << "PASS" << std::endl;
   }
-
-  std::ofstream out;
-  std::string fname = "results/" + std::to_string(K) + "thNearestNeighbors.txt";
-  out.open(fname, std::ios::out);
-
-  if ( !out.is_open() )
-  {
-    std::cout << "IO Error: failed to open " + fname << std::endl;
-    return;
-  }
-
-  for (std::vector<double>::size_type i = 0; i != x.size(); ++i)
-  {
-    out << x[i] << "\t" << y[i] << std::endl;
-  }
-
-  out.close();
 }
 
 
