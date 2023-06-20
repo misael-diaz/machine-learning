@@ -347,7 +347,8 @@ void ads ()
   std::transform(ids.begin(), ids.end(), x.begin(), linspace);
 
   double diff = 0;
-  for (int k = 4; k != 128; k += 4)
+  int const size = dset.size();
+  for (int k = 0; k != size; ++k)
   {
     int const K = (k + 1);
     std::vector<double> y;
