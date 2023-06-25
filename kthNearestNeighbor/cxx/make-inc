@@ -20,7 +20,7 @@ CXX = g++
 CXXOPT = -O2
 
 # debugging options
-CXXOPT = -g -Wall -Wextra -O0
+CXXOPT = -g -fPIC -Wall -Wextra -O0
 
 
 ## source files
@@ -37,4 +37,5 @@ OBJECTS = $(MAIN_OBJ)
 
 ## executables
 MAIN_BIN = test-knn.bin
-TESTS = $(MAIN_BIN)
+LKNN_SO = libknn.so
+ALL = $(MAIN_BIN) $(LKNN_SO)

@@ -16,10 +16,13 @@
 
 include make-inc
 
-all: $(TESTS)
+all: $(ALL)
 
 $(MAIN_BIN): $(OBJECTS)
 	$(CXX) $(CXXOPT) $(OBJECTS) -o $(MAIN_BIN)
+
+$(LKNN_SO): $(OBJECTS)
+	$(CXX) $(CXXOPT) $(OBJECTS) -o $(LKNN_SO) -shared
 
 $(MAIN_OBJ): $(MAIN_CXX)
 	$(CXX) $(CXXOPT) -c $(MAIN_CXX) -o $(MAIN_OBJ)

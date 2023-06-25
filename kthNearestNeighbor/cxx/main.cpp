@@ -88,6 +88,8 @@ int main ()
 }
 
 
+
+
 std::vector<gData> gDataset ()
 {
   std::ifstream in;
@@ -526,6 +528,29 @@ Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
     first = dset[index];
     return first;
   }
+}
+
+
+extern "C" void KNN(int const K,
+		    double const target,
+		    int const size,
+		    const double* dset,
+		    double* kthElem)
+{
+  const double* X = dset;
+  const double* y = (dset + size);
+
+  std::vector<Data> vset;
+  for (int i = 0; i != size; ++i)
+  {
+    Data const data(X[i], y[i]);
+    vset.push_back(data);
+  }
+
+  Data const t(target, 0);
+  Data data = knn(K, t, vset);
+  kthElem[0] = data.X;
+  kthElem[1] = data.y;
 }
 
 
