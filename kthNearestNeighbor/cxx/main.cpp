@@ -745,4 +745,4 @@ void ads ()
 
 
 // TODO:
-// [ ] throw exceptions on invalid inputs
+// [x] throw exceptions on invalid inputs
