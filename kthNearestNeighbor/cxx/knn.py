@@ -38,7 +38,7 @@ def isSorted(dataset):
 
   cols = dataset.shape[1]
   for i in range(cols - 1):
-    if (dataset[0, i + 1] < dataset[0, i]):
+    if dataset[0, i + 1] < dataset[0, i]:
       return False
 
   return True
@@ -59,7 +59,7 @@ def distances(target, dataset):
 def knn(K, target, dataset):
   # forwards the task to the C++ implementation of the KNN algorithm 
 
-  if ( not isSorted(dataset) ):
+  if not isSorted(dataset):
     raise ValueError('KNN(): expects a dataset sorted by the features')
 
   dataset = dataset.flatten()   # flattens the 2 x `N' dataset into a 2 * `N' dataset
