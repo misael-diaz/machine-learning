@@ -1,0 +1,8 @@
+*.o
+*.so
+*.txt
+*.bin
+*.swp
+*pycache*
+*datasets*
+*artificial-neural-network
