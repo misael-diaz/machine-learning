@@ -88,6 +88,8 @@ def assertions():
   dset = dataset.sort_values(by = ['TV'])
   dset = dset.to_numpy().transpose()
 
+  pyknn = lambda kth, dist: dist[:, kth - 1]
+
   X = dset[0, :]
   cols = dset.shape[1]
   # for-each possible kth
@@ -104,36 +106,36 @@ def assertions():
       # there might be a duplicate kth nearest neighbor at the left or right of the target
       if kth == 1:
 
-        this, next = dist[0, kth - 1], dist[0, kth]
-        if this == next:
-          this, next = dist[1, kth - 1], dist[1, kth]
-          assert y_kth == this or y_kth == next
+        this_dist, this_y = pyknn(kth, dist)
+        next_dist, next_y = pyknn(kth + 1, dist)
+
+        if this_dist == next_dist:
+          assert y_kth == this_y or y_kth == next_y
         else:
-          this = dist[1, kth - 1]
-          assert y_kth == this
+          assert y_kth == this_y
 
       elif kth == cols:
 
-        prev, this = dist[0, kth - 2], dist[0, kth - 1]
-        if prev == this:
-          prev, this = dist[1, kth - 2], dist[1, kth - 1]
-          assert y_kth == prev or y_kth == this
+        prev_dist, prev_y = pyknn(kth - 1, dist)
+        this_dist, this_y = pyknn(kth, dist)
+
+        if prev_dist == this_dist:
+          assert y_kth == prev_y or y_kth == this_y
         else:
-          this = dist[1, kth - 1]
-          assert y_kth == this
+          assert y_kth == this_y
 
       else:
 
-        prev, this, next = dist[0, kth - 2], dist[0, kth - 1], dist[0, kth]
-        if prev == this:
-          prev, this = dist[1, kth - 2], dist[1, kth - 1]
-          assert y_kth == prev or y_kth == this
-        elif this == next:
-          this, next = dist[1, kth - 1], dist[1, kth]
-          assert y_kth == this or y_kth == next
+        prev_dist, prev_y = pyknn(kth - 1, dist)
+        this_dist, this_y = pyknn(kth, dist)
+        next_dist, next_y = pyknn(kth + 1, dist)
+
+        if prev_dist == this_dist:
+          assert y_kth == prev_y or y_kth == this_y
+        elif this_dist == next_dist:
+          assert y_kth == this_y or y_kth == next_y
         else:
-          this = dist[1, kth - 1]
-          assert y_kth == this
+          assert y_kth == this_y
 
   return
 
