@@ -147,14 +147,10 @@ dset = dataset.sort_values(by = ['TV'])
 dset = dset.to_numpy().transpose()
 
 kth = 8
-kth_elems = zeros(dset.shape)
-for i in range(dset.shape[1]):
-  x_target = dset[0, i]
-  _, y = ret = knn(kth, x_target, dset)
-  kth_elems[0, i] = x_target
-  kth_elems[1, i] = y
+X, y = dset.copy()
+for i, x_target in enumerate(X):
+  _, y[i] = knn(kth, x_target, dset)
 
-X, y = kth_elems
 xi, yi = dset
 
 plt.close('all')
