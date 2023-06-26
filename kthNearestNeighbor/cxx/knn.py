@@ -27,7 +27,6 @@ References:
 
 import ctypes
 import pandas as pd
-from numpy import sort
 from numpy import array
 from numpy import zeros
 from numpy import ctypeslib
