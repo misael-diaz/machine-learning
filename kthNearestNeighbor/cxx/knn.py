@@ -45,6 +45,7 @@ def isSorted(dataset):
 
 
 def distances(target, dataset):
+  # sorts the output `y' with respect to the distance from the `target'
 
   dist = dataset.copy()
   dist[0, :] = (dist[0, :] - target)**2
@@ -56,6 +57,7 @@ def distances(target, dataset):
 
 
 def knn(K, target, dataset):
+  # forwards the task to the C++ implementation of the KNN algorithm 
 
   if ( not isSorted(dataset) ):
     raise ValueError('KNN(): expects a dataset sorted by the features')
@@ -94,7 +96,7 @@ def assertions():
 
       dist = distances(x_target, dset)
 
-      # there might be a duplicate kth nearest neighbor at the left or right
+      # there might be a duplicate kth nearest neighbor at the left or right of the target
       if kth == 1:
 
         this, next = dist[0, kth - 1], dist[0, kth]
@@ -133,7 +135,9 @@ def assertions():
 
 # The assertions fail when there are inconsistent entries in the dataset;
 # that is, different responses for the same input (or feature). The original
-# dataset (ref[2]) has been edited slightly to eliminate those inconsistencies.
+# dataset (ref[2]) has been edited slightly to eliminate those ``inconsistencies''.
+# These ``inconsistencies'' arise because just one feature is being used whereas
+# the output really derives from multiple features.
 assertions()
 
 
