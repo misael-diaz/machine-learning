@@ -81,18 +81,23 @@ def knn(K, target, dataset):
 
 
 def assertions():
+  # tests the output of the KNN algorithm against the expected values
 
   df = pd.read_csv('datasets/Advertising.csv')
   dataset = df[['TV', 'sales']]
   dset = dataset.sort_values(by = ['TV'])
   dset = dset.to_numpy().transpose()
 
-  for k in range(dset.shape[1]):
+  X = dset[0, :]
+  cols = dset.shape[1]
+  # for-each possible kth
+  for k in range(cols):
 
     kth = (k + 1)
-    for x_target in dset[0, :]:
+    # for-each X in the dataset
+    for x_target in X:
 
-      X_kth, y_kth = res = knn(kth, x_target, dset)
+      X_kth, y_kth = knn(kth, x_target, dset)
 
       dist = distances(x_target, dset)
 
@@ -107,7 +112,7 @@ def assertions():
           this = dist[1, kth - 1]
           assert y_kth == this
 
-      elif kth == dset.shape[1]:
+      elif kth == cols:
 
         prev, this = dist[0, kth - 2], dist[0, kth - 1]
         if prev == this:
