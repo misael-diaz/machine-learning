@@ -155,11 +155,11 @@ for i in range(dset.shape[1]):
   kth_elems[1, i] = y
 
 X, y = kth_elems
+xi, yi = dset
 
 plt.close('all')
 plt.ion()
 fig, ax = plt.subplots()
-xi, yi = dset
 ax.plot(xi, yi, linestyle='', markersize=12, marker='s', color='red', label='dataset')
 ax.plot(X, y, linestyle='-', color='black', label=f'{kth}th nearest neighbor')
 ax.legend()
