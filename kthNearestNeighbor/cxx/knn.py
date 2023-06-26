@@ -27,7 +27,6 @@ References:
 
 import ctypes
 import pandas as pd
-from numpy import sort
 from numpy import array
 from numpy import zeros
 from numpy import ctypeslib
@@ -38,13 +37,14 @@ def isSorted(dataset):
 
   cols = dataset.shape[1]
   for i in range(cols - 1):
-    if (dataset[0, i + 1] < dataset[0, i]):
+    if dataset[0, i + 1] < dataset[0, i]:
       return False
 
   return True
 
 
 def distances(target, dataset):
+  # sorts the output `y' with respect to the distance from the `target'
 
   dist = dataset.copy()
   dist[0, :] = (dist[0, :] - target)**2
@@ -56,8 +56,9 @@ def distances(target, dataset):
 
 
 def knn(K, target, dataset):
+  # forwards the task to the C++ implementation of the KNN algorithm 
 
-  if ( not isSorted(dataset) ):
+  if not isSorted(dataset):
     raise ValueError('KNN(): expects a dataset sorted by the features')
 
   dataset = dataset.flatten()   # flattens the 2 x `N' dataset into a 2 * `N' dataset
@@ -79,61 +80,70 @@ def knn(K, target, dataset):
 
 
 def assertions():
+  # tests the output of the KNN algorithm against the expected values
 
   df = pd.read_csv('datasets/Advertising.csv')
   dataset = df[['TV', 'sales']]
   dset = dataset.sort_values(by = ['TV'])
   dset = dset.to_numpy().transpose()
 
-  for k in range(dset.shape[1]):
+  pyknn = lambda kth, dist: dist[:, kth - 1]
+
+  X = dset[0, :]
+  cols = dset.shape[1]
+  # for-each possible kth
+  for k in range(cols):
 
     kth = (k + 1)
-    for x_target in dset[0, :]:
+    # for-each X in the dataset
+    for x_target in X:
 
-      X_kth, y_kth = res = knn(kth, x_target, dset)
+      X_kth, y_kth = knn(kth, x_target, dset)
 
       dist = distances(x_target, dset)
 
-      # there might be a duplicate kth nearest neighbor at the left or right
+      # there might be a duplicate kth nearest neighbor at the left or right of the target
       if kth == 1:
 
-        this, next = dist[0, kth - 1], dist[0, kth]
-        if this == next:
-          this, next = dist[1, kth - 1], dist[1, kth]
-          assert y_kth == this or y_kth == next
-        else:
-          this = dist[1, kth - 1]
-          assert y_kth == this
+        this_dist, this_y = pyknn(kth, dist)
+        next_dist, next_y = pyknn(kth + 1, dist)
 
-      elif kth == dset.shape[1]:
-
-        prev, this = dist[0, kth - 2], dist[0, kth - 1]
-        if prev == this:
-          prev, this = dist[1, kth - 2], dist[1, kth - 1]
-          assert y_kth == prev or y_kth == this
+        if this_dist == next_dist:
+          assert y_kth == this_y or y_kth == next_y
         else:
-          this = dist[1, kth - 1]
-          assert y_kth == this
+          assert y_kth == this_y
+
+      elif kth == cols:
+
+        prev_dist, prev_y = pyknn(kth - 1, dist)
+        this_dist, this_y = pyknn(kth, dist)
+
+        if prev_dist == this_dist:
+          assert y_kth == prev_y or y_kth == this_y
+        else:
+          assert y_kth == this_y
 
       else:
 
-        prev, this, next = dist[0, kth - 2], dist[0, kth - 1], dist[0, kth]
-        if prev == this:
-          prev, this = dist[1, kth - 2], dist[1, kth - 1]
-          assert y_kth == prev or y_kth == this
-        elif this == next:
-          this, next = dist[1, kth - 1], dist[1, kth]
-          assert y_kth == this or y_kth == next
+        prev_dist, prev_y = pyknn(kth - 1, dist)
+        this_dist, this_y = pyknn(kth, dist)
+        next_dist, next_y = pyknn(kth + 1, dist)
+
+        if prev_dist == this_dist:
+          assert y_kth == prev_y or y_kth == this_y
+        elif this_dist == next_dist:
+          assert y_kth == this_y or y_kth == next_y
         else:
-          this = dist[1, kth - 1]
-          assert y_kth == this
+          assert y_kth == this_y
 
   return
 
 
 # The assertions fail when there are inconsistent entries in the dataset;
 # that is, different responses for the same input (or feature). The original
-# dataset (ref[2]) has been edited slightly to eliminate those inconsistencies.
+# dataset (ref[2]) has been edited slightly to eliminate those ``inconsistencies''.
+# These ``inconsistencies'' arise because just one feature is being used whereas
+# the output really derives from multiple features.
 assertions()
 
 
@@ -143,19 +153,15 @@ dset = dataset.sort_values(by = ['TV'])
 dset = dset.to_numpy().transpose()
 
 kth = 8
-kth_elems = zeros(dset.shape)
-for i in range(dset.shape[1]):
-  x_target = dset[0, i]
-  _, y = ret = knn(kth, x_target, dset)
-  kth_elems[0, i] = x_target
-  kth_elems[1, i] = y
+X, y = dset.copy()
+for i, x_target in enumerate(X):
+  _, y[i] = knn(kth, x_target, dset)
 
-X, y = kth_elems
+xi, yi = dset
 
 plt.close('all')
 plt.ion()
 fig, ax = plt.subplots()
-xi, yi = dset
 ax.plot(xi, yi, linestyle='', markersize=12, marker='s', color='red', label='dataset')
 ax.plot(X, y, linestyle='-', color='black', label=f'{kth}th nearest neighbor')
 ax.legend()
