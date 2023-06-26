@@ -531,6 +531,21 @@ Data knn (int const Kth, Data const& target, std::vector<Data> const& dset)
 }
 
 
+// void KNN (int K, double target, int size, double* dset, double* kthElem)
+//
+// Synopsis:
+// Wrapper.
+// Vectorizes the dataset for the knn() method.
+// Returns the kth nearest neighbor (X_kth, y_kth) to the targetted X value.
+//
+// Inputs:
+// K		requested kth nearest neighbor
+// size		size or equivalently, the number of records in the dataset
+// target	this is the target value of the feature we are interested in
+// dset		pointer to dataset which is stored as a contiguous array
+// kthElem	placeholder for the kth nearest neighbor (X_kth, y_kth)
+
+
 extern "C" void KNN(int const K,
 		    double const target,
 		    int const size,
