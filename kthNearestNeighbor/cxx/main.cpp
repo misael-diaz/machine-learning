@@ -746,3 +746,12 @@ void ads ()
 
 // TODO:
 // [x] throw exceptions on invalid inputs
+
+
+// COMMENTS:
+// Constructing the Decision Tree of the KNN algorithm can be helpful to understand
+// how it works. Note that most of the time the algorithm just compares pairs until the
+// sought kth nearest neighbor is found. This is the case while traversing the left and
+// right partitions of the dataset. The simplest case happens when there is either no
+// left or right partition because we can find the kth element directly via element
+// addressing owing to the ordering of the dataset.
